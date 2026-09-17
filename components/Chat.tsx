@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { EscalateDialog } from "@/components/EscalateDialog";
 import type { ChatMessage } from "@/lib/types";
@@ -10,6 +10,8 @@ const SUGGESTIONS = [
   "Kako prijavim odpadno embalažo?",
   "Kdaj naj se obrnem na operaterja?",
 ];
+
+const NEAR_BOTTOM_PX = 120;
 
 type ChatProps = {
   operatorEmail: string;
@@ -22,9 +24,30 @@ export function Chat({ operatorEmail }: ChatProps) {
   const [error, setError] = useState<string | null>(null);
   const [escalateOpen, setEscalateOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+
+  const isNearBottom = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+  }, []);
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+    const el = listRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      stickToBottomRef.current = isNearBottom();
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [isNearBottom]);
+
+  useEffect(() => {
+    if (!stickToBottomRef.current) return;
+    bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   }, [messages, loading]);
 
   async function sendMessage(content: string) {
@@ -33,6 +56,7 @@ export function Chat({ operatorEmail }: ChatProps) {
       return;
     }
 
+    stickToBottomRef.current = true;
     const nextMessages: ChatMessage[] = [...messages, { role: "user", content: trimmed }];
     setMessages(nextMessages);
     setInput("");
@@ -92,7 +116,10 @@ export function Chat({ operatorEmail }: ChatProps) {
       <header className="topbar">
         <div>
           <p className="eyebrow">DINOS · DROE</p>
-          <h1>Pomočnik za odpadno embalažo</h1>
+          <h1>
+            <span className="title-full">Pomočnik za odpadno embalažo</span>
+            <span className="title-compact">Pomočnik DROE</span>
+          </h1>
         </div>
         <button type="button" className="ghost-button" onClick={() => setEscalateOpen(true)}>
           Posreduj operaterju
@@ -137,31 +164,34 @@ export function Chat({ operatorEmail }: ChatProps) {
             ) : null}
           </ul>
         )}
+        <div ref={bottomRef} aria-hidden="true" />
       </div>
 
-      {error ? <p className="error">{error}</p> : null}
+      <div className="footer-area">
+        {error ? <p className="error">{error}</p> : null}
 
-      <form className="composer" onSubmit={onSubmit}>
-        <label className="sr-only" htmlFor="chat-input">
-          Vpišite vprašanje
-        </label>
-        <textarea
-          id="chat-input"
-          rows={2}
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="Vpišite vprašanje o odpadni embalaži…"
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              void sendMessage(input);
-            }
-          }}
-        />
-        <button type="submit" className="primary-button" disabled={loading || !input.trim()}>
-          Pošlji
-        </button>
-      </form>
+        <form className="composer" onSubmit={onSubmit}>
+          <label className="sr-only" htmlFor="chat-input">
+            Vpišite vprašanje
+          </label>
+          <textarea
+            id="chat-input"
+            rows={1}
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Vpišite vprašanje o odpadni embalaži…"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void sendMessage(input);
+              }
+            }}
+          />
+          <button type="submit" className="primary-button" disabled={loading || !input.trim()}>
+            Pošlji
+          </button>
+        </form>
+      </div>
 
       <EscalateDialog
         open={escalateOpen}
