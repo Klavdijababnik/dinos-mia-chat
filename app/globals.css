@@ -22,7 +22,9 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -31,39 +33,48 @@ body {
     linear-gradient(180deg, #f7f4ee 0%, var(--paper) 100%);
   color: var(--ink);
   font-family: var(--font-sans), "Source Sans 3", sans-serif;
+  -webkit-text-size-adjust: 100%;
 }
 
 main {
-  min-height: 100dvh;
+  height: 100dvh;
+  height: 100svh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
-  padding: 16px;
+  padding: 0;
+  overflow: hidden;
 }
 
 .shell {
   width: min(760px, 100%);
-  min-height: calc(100dvh - 32px);
+  height: 100svh;
+  height: 100dvh;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  box-shadow: var(--shadow);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  /* bottom safe area handled by composer */
 }
 
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
-  padding: 20px 20px 12px;
+  gap: 12px;
+  padding: 12px 16px 8px;
 }
 
 .eyebrow {
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   color: var(--pine);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -71,28 +82,32 @@ main {
 
 h1 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   line-height: 1.25;
 }
 
 .disclaimer {
-  margin: 0 20px 12px;
-  padding: 10px 12px;
+  margin: 0 12px 8px;
+  padding: 8px 10px;
   background: var(--warn-bg);
   color: var(--warn);
   border-radius: 12px;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .transcript {
-  padding: 8px 20px 16px;
+  min-height: 0;
+  padding: 4px 16px 12px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .empty {
   background: var(--moss);
-  border-radius: 16px;
-  padding: 18px;
+  border-radius: 18px;
+  padding: 16px;
 }
 
 .empty p,
@@ -106,7 +121,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .chip,
@@ -123,6 +138,7 @@ h1 {
   border: 1px solid #c7d8cc;
   border-radius: 999px;
   padding: 8px 12px;
+  font-size: 0.9rem;
 }
 
 .messages {
@@ -131,24 +147,26 @@ h1 {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .bubble {
-  max-width: 92%;
-  padding: 12px 14px;
-  border-radius: 16px;
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 18px;
 }
 
 .bubble.user {
   align-self: flex-end;
   background: var(--pine);
   color: #fff;
+  border-bottom-right-radius: 6px;
 }
 
 .bubble.assistant {
   align-self: flex-start;
   background: var(--moss);
+  border-bottom-left-radius: 6px;
 }
 
 .bubble.pending {
@@ -157,37 +175,55 @@ h1 {
 
 .who {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   opacity: 0.8;
 }
 
+.footer-area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .error {
-  margin: 0 20px 8px;
+  margin: 0;
+  padding: 6px 16px 0;
   color: var(--danger);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .composer {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
-  padding: 16px 20px 20px;
+  align-items: end;
+  padding: 10px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--line);
-  background: #fff;
+  background: rgba(255, 253, 248, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 textarea,
 input {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 10px 12px;
   font: inherit;
+  font-size: 16px;
   color: var(--ink);
   background: #fff;
-  resize: vertical;
+  resize: none;
+  max-height: 96px;
+  line-height: 1.35;
+}
+
+textarea {
+  field-sizing: content;
 }
 
 .primary-button,
@@ -204,6 +240,7 @@ input {
 .primary-button {
   background: var(--pine);
   color: #fff;
+  min-height: 44px;
 }
 
 .primary-button:disabled {
@@ -215,6 +252,9 @@ input {
   background: transparent;
   color: var(--pine-deep);
   border: 1px solid #b9cbbd;
+  font-size: 0.88rem;
+  padding: 8px 12px;
+  min-height: 40px;
 }
 
 .dialog-backdrop {
@@ -225,6 +265,7 @@ input {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
   z-index: 20;
 }
 
@@ -235,6 +276,8 @@ input {
   padding: 20px;
   display: grid;
   gap: 12px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
 }
 
 .dialog h2 {
@@ -266,23 +309,90 @@ input {
   border: 0;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 641px) {
   main {
-    padding: 0;
+    padding: 16px;
   }
 
   .shell {
-    min-height: 100dvh;
-    border: 0;
-    border-radius: 0;
+    height: calc(100dvh - 32px);
+    max-height: calc(100dvh - 32px);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    padding-top: 0;
+    padding-right: 0;
+    padding-left: 0;
   }
 
-  .topbar,
+  .topbar {
+    padding: 20px 20px 12px;
+    align-items: flex-start;
+  }
+
+  h1 {
+    font-size: 1.35rem;
+  }
+
+  .disclaimer {
+    margin: 0 20px 12px;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+  }
+
+  .transcript {
+    padding: 8px 20px 16px;
+  }
+
   .composer {
+    padding: 16px 20px 20px;
+  }
+
+  .error {
+    padding: 8px 20px 0;
+  }
+
+  .ghost-button {
+    font-size: inherit;
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
     flex-wrap: wrap;
   }
 
   .composer {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
+  }
+
+  .title-full {
+    display: none;
+  }
+
+  .title-compact {
+    display: inline;
+  }
+}
+
+@media (min-width: 641px) {
+  .title-full {
+    display: inline;
+  }
+
+  .title-compact {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
