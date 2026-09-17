@@ -111,10 +111,53 @@ h1 {
 }
 
 .empty p,
-.bubble p,
+.bubble > p,
 .dialog p {
   margin: 0;
   white-space: pre-wrap;
+}
+
+.md {
+  margin: 0;
+  font-size: inherit;
+  line-height: 1.45;
+}
+
+.md p {
+  margin: 0 0 0.55em;
+}
+
+.md p:last-child {
+  margin-bottom: 0;
+}
+
+.md strong {
+  font-weight: 700;
+}
+
+.md em {
+  font-style: italic;
+}
+
+.md-list {
+  margin: 0.35em 0 0.55em;
+  padding-left: 1.25em;
+}
+
+.md-list:last-child {
+  margin-bottom: 0;
+}
+
+.md-list li {
+  margin: 0.15em 0;
+}
+
+.md-ol {
+  list-style: decimal;
+}
+
+.md-list:not(.md-ol) {
+  list-style: disc;
 }
 
 .suggestions {
