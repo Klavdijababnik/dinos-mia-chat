@@ -42,25 +42,40 @@ export function Chat({ operatorEmail }: ChatProps) {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ messages: nextMessages }),
       });
 
-      const payload = (await response.json()) as {
-        message?: ChatMessage;
-        error?: string;
-      };
+      const raw = await response.text();
+      let payload: { message?: ChatMessage; error?: string } = {};
+      try {
+        payload = raw ? (JSON.parse(raw) as { message?: ChatMessage; error?: string }) : {};
+      } catch {
+        throw new Error(
+          response.ok
+            ? "Strežnik je vrnil neveljaven odgovor. Poskusite znova."
+            : "Povezava do pomočnika trenutno ni zanesljiva. Poskusite znova čez trenutek.",
+        );
+      }
 
       if (!response.ok || !payload.message?.content) {
-        throw new Error(payload.error || "Pošiljanje ni uspelo.");
+        throw new Error(
+          payload.error ||
+            (response.status >= 500
+              ? "Pomočnik trenutno ne more odgovoriti. Poskusite znova."
+              : "Pošiljanje ni uspelo."),
+        );
       }
 
       setMessages((current) => [...current, payload.message as ChatMessage]);
     } catch (sendError) {
+      const message =
+        sendError instanceof Error ? sendError.message : "Prišlo je do napake. Poskusite znova.";
+      // Safari: JSON.parse on HTML often throws "The string did not match the expected pattern."
       setError(
-        sendError instanceof Error
-          ? sendError.message
-          : "Prišlo je do napake. Poskusite znova.",
+        /expected pattern|JSON|Unexpected token/i.test(message)
+          ? "Povezava do pomočnika trenutno ni zanesljiva. Poskusite znova čez trenutek."
+          : message,
       );
     } finally {
       setLoading(false);
