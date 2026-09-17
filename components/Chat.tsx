@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { EscalateDialog } from "@/components/EscalateDialog";
+import { SafeMarkdown } from "@/components/SafeMarkdown";
 import type { ChatMessage } from "@/lib/types";
 
 const SUGGESTIONS = [
@@ -11,11 +12,11 @@ const SUGGESTIONS = [
   "Kdaj naj se obrnem na operaterja?",
 ];
 
-const NEAR_BOTTOM_PX = 120;
-
 type ChatProps = {
   operatorEmail: string;
 };
+
+type ScrollIntent = { index: number; block: ScrollLogicalPosition } | null;
 
 export function Chat({ operatorEmail }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -24,31 +25,33 @@ export function Chat({ operatorEmail }: ChatProps) {
   const [error, setError] = useState<string | null>(null);
   const [escalateOpen, setEscalateOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const stickToBottomRef = useRef(true);
-
-  const isNearBottom = useCallback(() => {
-    const el = listRef.current;
-    if (!el) return true;
-    return el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-  }, []);
+  const messageRefs = useRef<Map<number, HTMLLIElement>>(new Map());
+  const pendingRef = useRef<HTMLLIElement | null>(null);
+  const scrollIntentRef = useRef<ScrollIntent>(null);
 
   useEffect(() => {
-    const el = listRef.current;
+    const intent = scrollIntentRef.current;
+    if (!intent) return;
+    scrollIntentRef.current = null;
+
+    const el =
+      intent.index === -1
+        ? pendingRef.current
+        : messageRefs.current.get(intent.index);
+
     if (!el) return;
 
-    const onScroll = () => {
-      stickToBottomRef.current = isNearBottom();
-    };
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [isNearBottom]);
-
-  useEffect(() => {
-    if (!stickToBottomRef.current) return;
-    bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+    // Keep scroll inside .transcript; auto (not smooth) so we don't fight the user.
+    el.scrollIntoView({ block: intent.block, behavior: "auto", inline: "nearest" });
   }, [messages, loading]);
+
+  function setMessageRef(index: number, node: HTMLLIElement | null) {
+    if (node) {
+      messageRefs.current.set(index, node);
+    } else {
+      messageRefs.current.delete(index);
+    }
+  }
 
   async function sendMessage(content: string) {
     const trimmed = content.trim();
@@ -56,7 +59,9 @@ export function Chat({ operatorEmail }: ChatProps) {
       return;
     }
 
-    stickToBottomRef.current = true;
+    const userIndex = messages.length;
+    scrollIntentRef.current = { index: userIndex, block: "end" };
+
     const nextMessages: ChatMessage[] = [...messages, { role: "user", content: trimmed }];
     setMessages(nextMessages);
     setInput("");
@@ -91,6 +96,8 @@ export function Chat({ operatorEmail }: ChatProps) {
         );
       }
 
+      const assistantIndex = nextMessages.length;
+      scrollIntentRef.current = { index: assistantIndex, block: "start" };
       setMessages((current) => [...current, payload.message as ChatMessage]);
     } catch (sendError) {
       const message =
@@ -151,20 +158,27 @@ export function Chat({ operatorEmail }: ChatProps) {
         ) : (
           <ul className="messages">
             {messages.map((message, index) => (
-              <li key={`${message.role}-${index}`} className={`bubble ${message.role}`}>
+              <li
+                key={`${message.role}-${index}`}
+                className={`bubble ${message.role}`}
+                ref={(node) => setMessageRef(index, node)}
+              >
                 <span className="who">{message.role === "user" ? "Vi" : "Pomočnik"}</span>
-                <p>{message.content}</p>
+                {message.role === "assistant" ? (
+                  <SafeMarkdown content={message.content} />
+                ) : (
+                  <p>{message.content}</p>
+                )}
               </li>
             ))}
             {loading ? (
-              <li className="bubble assistant pending">
+              <li className="bubble assistant pending" ref={pendingRef}>
                 <span className="who">Pomočnik</span>
                 <p>Pripravljam odgovor…</p>
               </li>
             ) : null}
           </ul>
         )}
-        <div ref={bottomRef} aria-hidden="true" />
       </div>
 
       <div className="footer-area">
