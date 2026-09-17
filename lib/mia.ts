@@ -4,7 +4,7 @@ import { SYSTEM_PROMPT } from "@/lib/system-prompt";
 export const MIA_MODEL = "mia";
 export const DEFAULT_MIA_BASE_URL = "https://mia.mikrografija.si/dinos/v1";
 export const MIN_MAX_TOKENS = 256;
-export const DEFAULT_MAX_TOKENS = 1024;
+export const DEFAULT_MAX_TOKENS = 4096;
 
 type MiaMessage = {
   role: "system" | "user" | "assistant";
@@ -41,7 +41,23 @@ export function buildMiaMessages(messages: ChatMessage[]): MiaMessage[] {
 export function extractAssistantContent(payload: MiaChatCompletion): string {
   const message = payload.choices?.[0]?.message;
   const content = typeof message?.content === "string" ? message.content.trim() : "";
-  return content;
+  if (content) {
+    return content;
+  }
+  // mIA may spend the budget on reasoning_content; surface a clear empty signal upstream
+  const reasoning =
+    typeof message?.reasoning_content === "string" ? message.reasoning_content.trim() : "";
+  if (reasoning) {
+    // Prefer not to show chain-of-thought; ask caller to retry with more tokens.
+    // As last resort, if model never filled content, return a short Slovenian fallback
+    // only when reasoning looks like it contains a finished answer paragraph.
+    const paragraphs = reasoning.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+    const last = paragraphs[paragraphs.length - 1] || "";
+    if (last.length >= 80 && !/moram |naj |verjetno |morda /i.test(last.slice(0, 40))) {
+      return last;
+    }
+  }
+  return "";
 }
 
 export async function createMiaCompletion(messages: ChatMessage[]): Promise<string> {
