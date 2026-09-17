@@ -5,6 +5,7 @@ import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { EscalateDialog } from "@/components/EscalateDialog";
 import { SafeMarkdown } from "@/components/SafeMarkdown";
 import type { ChatMessage } from "@/lib/types";
+import { useAppHeight } from "@/hooks/useAppHeight";
 
 const SUGGESTIONS = [
   "Kaj je DROE in koga zadeva?",
@@ -19,6 +20,8 @@ type ChatProps = {
 type ScrollIntent = { index: number; block: ScrollLogicalPosition } | null;
 
 export function Chat({ operatorEmail }: ChatProps) {
+  useAppHeight();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
